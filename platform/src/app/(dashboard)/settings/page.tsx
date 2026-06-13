@@ -26,6 +26,10 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [githubError] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("github_error");
+  });
 
   useEffect(() => {
     (async () => {
@@ -116,6 +120,11 @@ export default function SettingsPage() {
                 <Github className="h-4 w-4" /> Connect
               </Button>
             </div>
+          )}
+          {githubError && (
+            <p className="mt-3 rounded bg-red-950/40 px-3 py-2 text-xs text-red-400">
+              GitHub connection failed: {githubError}
+            </p>
           )}
           <p className="mt-3 text-[11px] text-faint">
             The token is encrypted with AES-256-GCM and is never readable by the browser. Requested scopes: read:user, user:email, repo.

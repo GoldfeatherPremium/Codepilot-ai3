@@ -32,17 +32,21 @@ export async function GET(request: NextRequest) {
   const isGitHub = session?.user.app_metadata?.provider === "github";
 
   if (isGitHub && session?.provider_token) {
-    try {
-      await supabase.functions.invoke("github-sync", {
-        body: {
-          action: "store_token",
-          providerToken: session.provider_token,
-          githubUsername: session.user.user_metadata?.user_name ?? null,
-        },
-      });
-    } catch {
-      // Non-fatal: the user can reconnect GitHub from Settings.
+    const { error: fnError } = await supabase.functions.invoke("github-sync", {
+      body: {
+        action: "store_token",
+        providerToken: session.provider_token,
+        githubUsername: session.user.user_metadata?.user_name ?? null,
+      },
+    });
+    if (fnError) {
+      const msg = fnError instanceof Error ? fnError.message : String(fnError);
+      return NextResponse.redirect(
+        `${origin}/settings?github_error=${encodeURIComponent(msg)}`
+      );
     }
+  } else if (isGitHub && !session?.provider_token) {
+    return NextResponse.redirect(`${origin}/settings?github_error=no_provider_token`);
   }
 
   return NextResponse.redirect(`${origin}${safeNext}`);
