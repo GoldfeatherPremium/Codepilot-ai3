@@ -61,37 +61,38 @@ export default function RepositoriesPage() {
         />
       )}
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         {repos === null && <p className="text-sm text-faint">Loading…</p>}
         {repos?.map((r) => (
           <div key={r.id} className="group rounded-xl border border-line bg-surface p-4 transition-colors hover:border-faint/40">
             <div className="flex items-start justify-between gap-3">
-              <Link href={`/repositories/${r.id}`} className="min-w-0">
-                <p className="flex items-center gap-2 truncate font-mono text-sm font-medium group-hover:text-phosphor">
+              <Link href={`/repositories/${r.id}`} className="min-w-0 flex-1">
+                <p className="flex items-center gap-2 font-mono text-sm font-medium group-hover:text-phosphor">
                   {r.private ? <Lock className="h-3.5 w-3.5 shrink-0 text-faint" /> : <Globe className="h-3.5 w-3.5 shrink-0 text-faint" />}
-                  {r.full_name}
+                  <span className="truncate">{r.full_name}</span>
                 </p>
-                {r.description && <p className="mt-1 line-clamp-1 text-xs text-muted">{r.description}</p>}
+                {r.description && <p className="mt-1 line-clamp-2 text-xs text-muted">{r.description}</p>}
               </Link>
-              <Badge tone={statusTone(r.sync_status)}>{r.sync_status}</Badge>
-            </div>
-            <div className="mt-3 flex items-center justify-between text-[11px] text-faint">
-              <span className="flex items-center gap-3">
-                <span className="flex items-center gap-1"><Star className="h-3 w-3" />{r.stars}</span>
-                <span>{Object.keys(r.languages ?? {}).slice(0, 3).join(" · ") || "—"}</span>
-                <span>{r.indexed_file_count} files indexed</span>
-              </span>
-              <span className="flex items-center gap-2">
-                {r.last_synced_at ? `synced ${timeAgo(r.last_synced_at)}` : "never synced"}
+              <div className="flex shrink-0 items-center gap-2">
+                <Badge tone={statusTone(r.sync_status)}>{r.sync_status}</Badge>
                 <button
                   onClick={() => sync(r.id)}
                   disabled={r.sync_status === "syncing"}
                   title="Sync now"
-                  className="rounded p-1 hover:bg-raised hover:text-ink disabled:opacity-50"
+                  className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-raised hover:text-ink disabled:opacity-50"
+                  aria-label="Sync repository"
                 >
-                  <RefreshCw className={`h-3 w-3 ${r.sync_status === "syncing" ? "animate-spin" : ""}`} />
+                  <RefreshCw className={`h-3.5 w-3.5 ${r.sync_status === "syncing" ? "animate-spin" : ""}`} />
                 </button>
-              </span>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-faint">
+              <span className="flex items-center gap-1"><Star className="h-3 w-3" />{r.stars}</span>
+              {Object.keys(r.languages ?? {}).slice(0, 3).length > 0 && (
+                <span>{Object.keys(r.languages ?? {}).slice(0, 3).join(" · ")}</span>
+              )}
+              <span>{r.indexed_file_count ?? 0} files</span>
+              <span className="ml-auto">{r.last_synced_at ? `synced ${timeAgo(r.last_synced_at)}` : "never synced"}</span>
             </div>
           </div>
         ))}
@@ -131,9 +132,9 @@ function ImportDialog({ onClose, onImported }: { onClose: () => void; onImported
   const list = (remote ?? []).filter((r) => r.full_name.toLowerCase().includes(filter.toLowerCase()));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6" onClick={onClose}>
       <div
-        className="flex max-h-[70vh] w-full max-w-lg animate-slideUp flex-col rounded-xl border border-line bg-surface"
+        className="flex max-h-[85vh] w-full animate-slideUp flex-col rounded-t-2xl border border-line bg-surface sm:max-h-[70vh] sm:max-w-lg sm:rounded-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line p-4">

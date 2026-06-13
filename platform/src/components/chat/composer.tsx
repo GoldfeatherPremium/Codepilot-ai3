@@ -51,18 +51,18 @@ export function Composer({
         <div className="flex gap-1 rounded-lg border border-line bg-raised p-0.5">
           <button
             onClick={() => setMode("task")}
-            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${mode === "task" ? "bg-surface text-phosphor" : "text-faint hover:text-muted"}`}
+            className={`flex min-h-[36px] items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-medium transition-colors ${mode === "task" ? "bg-surface text-phosphor" : "text-faint hover:text-muted"}`}
           >
             <ListTree className="h-3 w-3" /> Task
           </button>
           <button
             onClick={() => setMode("chat")}
-            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${mode === "chat" ? "bg-surface text-signal" : "text-faint hover:text-muted"}`}
+            className={`flex min-h-[36px] items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-medium transition-colors ${mode === "chat" ? "bg-surface text-signal" : "text-faint hover:text-muted"}`}
           >
             <MessageSquare className="h-3 w-3" /> Chat
           </button>
         </div>
-        <Button variant="phosphor" size="icon" onClick={submit} disabled={disabled || busy || !text.trim()} title="Send (Enter)">
+        <Button variant="phosphor" size="icon" onClick={submit} disabled={disabled || busy || !text.trim()} title="Send (Enter)" className="h-10 w-10">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
         </Button>
       </div>

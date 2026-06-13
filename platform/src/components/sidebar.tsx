@@ -36,7 +36,7 @@ export function Sidebar({
   }
 
   return (
-    <aside className="flex h-dvh w-[230px] shrink-0 flex-col border-r border-line bg-surface max-md:hidden">
+    <aside className="hidden md:flex h-dvh w-[230px] shrink-0 flex-col border-r border-line bg-surface">
       <div className="flex h-14 items-center gap-2.5 border-b border-line px-4">
         <span className="flex h-6 w-6 items-center justify-center rounded bg-phosphor font-mono text-xs font-bold text-black">▸</span>
         <span className="text-[13px] font-semibold tracking-tight">CodePilot AI</span>

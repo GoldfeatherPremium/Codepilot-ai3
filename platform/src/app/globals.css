@@ -36,14 +36,25 @@ body {
 
 ::selection { background: hsl(var(--phosphor) / 0.25); }
 
-/* scrollbars that match the panel */
-::-webkit-scrollbar { width: 10px; height: 10px; }
+/* scrollbars that match the panel — thinner on mobile */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+@media (min-width: 768px) {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+}
 ::-webkit-scrollbar-thumb {
   background: hsl(var(--line));
   border-radius: 8px;
   border: 2px solid hsl(var(--bg));
 }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* Minimum touch targets */
+button, [role="button"], a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent horizontal overflow globally */
+html, body { overflow-x: hidden; max-width: 100vw; }
 
 :focus-visible {
   outline: 2px solid hsl(var(--phosphor));

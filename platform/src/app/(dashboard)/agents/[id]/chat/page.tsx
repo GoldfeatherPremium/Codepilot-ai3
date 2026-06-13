@@ -126,9 +126,9 @@ export default function AgentChatPage() {
   const liveRun = run && ["queued", "running"].includes(run.status);
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-4rem)] max-w-3xl flex-col">
+    <div className="mx-auto flex h-[calc(100dvh-8rem)] max-w-3xl flex-col md:h-[calc(100dvh-4rem)]">
       <div className="mb-4 flex items-center gap-3">
-        <Link href="/agents" className="rounded-md p-1.5 text-faint hover:bg-raised hover:text-ink">
+        <Link href="/agents" className="flex h-9 w-9 items-center justify-center rounded-md text-faint hover:bg-raised hover:text-ink">
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-raised">
