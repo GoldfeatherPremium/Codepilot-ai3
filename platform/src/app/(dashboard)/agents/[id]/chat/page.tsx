@@ -34,6 +34,7 @@ export default function AgentChatPage() {
         supabase.from("agent_messages").select("*").eq("agent_id", agentId).order("created_at").limit(200),
         supabase.from("agent_tasks").select("*").eq("agent_id", agentId).order("created_at", { ascending: false }).limit(20),
       ]);
+      console.debug("[chat] initial load — messages:", (msgs as AgentMessage[] | null)?.length ?? 0, msgs);
       setAgent(a as Agent);
       setMessages((msgs as AgentMessage[]) ?? []);
       const map: Record<string, AgentTask> = {};
@@ -59,18 +60,24 @@ export default function AgentChatPage() {
         { event: "INSERT", schema: "public", table: "agent_messages", filter: `agent_id=eq.${agentId}` },
         (payload) => {
           const incoming = payload.new as AgentMessage;
+          console.debug("[chat] realtime INSERT agent_messages:", incoming);
           setMessages((m) => {
             // Already have this exact row (e.g. loaded on mount).
-            if (m.some((x) => x.id === incoming.id)) return m;
+            if (m.some((x) => x.id === incoming.id)) {
+              console.debug("[chat] realtime: duplicate id, skipping", incoming.id);
+              return m;
+            }
             // Replace a matching optimistic placeholder (same role + content).
             const localIdx = m.findIndex(
               (x) => x.id.startsWith("local-") && x.role === incoming.role && x.content === incoming.content,
             );
             if (localIdx !== -1) {
+              console.debug("[chat] realtime: replacing optimistic at index", localIdx);
               const next = [...m];
               next[localIdx] = incoming;
               return next;
             }
+            console.debug("[chat] realtime: appending new message, state before:", m.length);
             return [...m, incoming];
           });
         },
@@ -89,7 +96,9 @@ export default function AgentChatPage() {
           setRun({ id: r.id, status: r.status, timeline: (r.timeline ?? []) as TimelineEvent[] });
         },
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        console.debug("[chat] realtime subscription status:", status, err ?? "");
+      });
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agentId]);
@@ -111,15 +120,24 @@ export default function AgentChatPage() {
       if (mode === "task") {
         await api.agent.plan(agentId, text);
       } else {
+        console.debug("[chat] send: calling api.agent.chat");
         const { reply } = await api.agent.chat(agentId, text);
+        console.debug("[chat] send: api.agent.chat returned, reply length:", reply?.length, "preview:", reply?.slice(0, 80));
         // Realtime will deliver the persisted assistant message and replace this
         // optimistic placeholder via the role+content match in the subscription handler.
         // This fallback only shows content if Realtime is slow; it gets replaced, not duplicated.
-        setMessages((m) => m.some((x) => x.role === "assistant" && x.content === reply)
-          ? m
-          : [...m, { id: `local-a-${Date.now()}`, role: "assistant", content: reply, parts: [], created_at: new Date().toISOString(), task_id: null, run_id: null }]);
+        setMessages((m) => {
+          // Only skip if a local optimistic placeholder or a just-delivered Realtime message
+          // already has this exact content — NOT if an older historical message happens to match.
+          const lastN = m.slice(-4);
+          const alreadyPresent = lastN.some((x) => x.role === "assistant" && x.content === reply);
+          console.debug("[chat] send: fallback check alreadyPresent=", alreadyPresent, "state size=", m.length);
+          if (alreadyPresent) return m;
+          return [...m, { id: `local-a-${Date.now()}`, role: "assistant", content: reply, parts: [], created_at: new Date().toISOString(), task_id: null, run_id: null }];
+        });
       }
     } catch (e: any) {
+      console.error("[chat] send: CAUGHT ERROR", e);
       setError(e.message);
     }
   }, [agentId]);
@@ -140,6 +158,9 @@ export default function AgentChatPage() {
     ...messages.map((m) => ({ at: m.created_at, kind: "msg" as const, msg: m })),
     ...Object.values(tasks).filter((t) => t.plan).map((t) => ({ at: t.created_at, kind: "task" as const, task: t })),
   ].sort((a, b) => a.at.localeCompare(b.at));
+  console.debug("[chat] render — messages state:", messages.length, "items:", items.length,
+    messages.map((m) => `${m.id.slice(0, 8)} ${m.role} "${m.content.slice(0, 30)}"`)
+  );
 
   const liveRun = run && ["queued", "running"].includes(run.status);
 
