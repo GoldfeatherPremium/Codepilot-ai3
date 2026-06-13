@@ -15,6 +15,10 @@ async function invoke<T>(fn: string, body: Record<string, unknown>): Promise<T> 
   return data as T;
 }
 
+function newMsgId() {
+  return crypto.randomUUID();
+}
+
 export const api = {
   github: {
     listRemote: (page = 1) => invoke<any[]>("github-sync", { action: "list_remote", page }),
@@ -29,10 +33,12 @@ export const api = {
     remove: (configId: string) => invoke("provider-test", { action: "delete", configId }),
   },
   agent: {
-    plan: (agentId: string, prompt: string) => invoke<{ taskId: string; plan: any }>("agent-run", { action: "plan", agentId, prompt }),
+    plan: (agentId: string, prompt: string) =>
+      invoke<{ taskId: string; plan: any }>("agent-run", { action: "plan", agentId, prompt, clientMsgId: newMsgId() }),
     approve: (taskId: string) => invoke<{ runId: string }>("agent-run", { action: "approve", taskId }),
     reject: (taskId: string, reason?: string) => invoke("agent-run", { action: "reject", taskId, reason }),
-    chat: (agentId: string, message: string) => invoke<{ reply: string }>("agent-run", { action: "chat", agentId, message }),
+    chat: (agentId: string, message: string) =>
+      invoke<{ reply: string }>("agent-run", { action: "chat", agentId, message, clientUserMsgId: newMsgId(), clientAsstMsgId: newMsgId() }),
   },
   memory: {
     create: (m: { scope: string; category?: string; title: string; content: string; repositoryId?: string }) =>
