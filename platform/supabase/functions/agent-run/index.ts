@@ -118,7 +118,7 @@ async function recallMemories(db: any, userId: string, repoId: string | null, qu
 // action=plan
 // ---------------------------------------------------------------------------
 async function planTask(db: any, userId: string, body: any) {
-  const { agentId, prompt } = body;
+  const { agentId, prompt, clientMsgId } = body;
   const ctx = await loadAgentContext(db, userId, agentId);
 
   const { data: task } = await db.from("agent_tasks").insert({
@@ -166,11 +166,16 @@ Produce a concise execution plan as STRICT JSON, no markdown fences:
     status: "awaiting_approval", title: plan.title ?? task.title, plan,
   }).eq("id", task.id);
 
-  await db.from("agent_messages").insert({
-    agent_id: agentId, task_id: task.id, user_id: userId, role: "assistant",
-    content: `I've drafted a plan for **${plan.title}**. Review the steps and approve to start execution.`,
-    parts: [{ type: "plan", plan }],
-  });
+  // Idempotent: clientMsgId prevents a duplicate plan message if the client retries.
+  await db.from("agent_messages").upsert(
+    {
+      agent_id: agentId, task_id: task.id, user_id: userId, role: "assistant",
+      content: `I've drafted a plan for **${plan.title}**. Review the steps and approve to start execution.`,
+      parts: [{ type: "plan", plan }],
+      client_message_id: clientMsgId ?? null,
+    },
+    { onConflict: "client_message_id", ignoreDuplicates: true },
+  );
 
   return json({ taskId: task.id, plan });
 }
@@ -883,12 +888,15 @@ async function ensureBranchFallback(st: RunState) {
 // action=chat
 // ---------------------------------------------------------------------------
 async function chatTurn(db: any, userId: string, body: any) {
-  const { agentId, message } = body;
+  const { agentId, message, clientUserMsgId, clientAsstMsgId } = body;
   const ctx = await loadAgentContext(db, userId, agentId);
 
-  await db.from("agent_messages").insert({
-    agent_id: agentId, user_id: userId, role: "user", content: message,
-  });
+  // ON CONFLICT DO NOTHING makes this idempotent: a network retry that
+  // re-sends the same clientUserMsgId is a no-op instead of a duplicate row.
+  await db.from("agent_messages").upsert(
+    { agent_id: agentId, user_id: userId, role: "user", content: message, client_message_id: clientUserMsgId ?? null },
+    { onConflict: "client_message_id", ignoreDuplicates: true },
+  );
 
   const { data: history } = await db.from("agent_messages")
     .select("role, content").eq("agent_id", agentId).eq("user_id", userId)
@@ -912,10 +920,15 @@ If the user asks for a code change, suggest creating a task so you can plan and 
     p_output: result.usage.outputTokens,
     p_cost: estimateCost(ctx.providerCfg.model, result.usage.inputTokens, result.usage.outputTokens),
   });
-  await db.from("agent_messages").insert({
-    agent_id: agentId, user_id: userId, role: "assistant", content: result.text,
-    input_tokens: result.usage.inputTokens, output_tokens: result.usage.outputTokens,
-  });
+  // Idempotent assistant insert: same clientAsstMsgId → no duplicate on retry.
+  await db.from("agent_messages").upsert(
+    {
+      agent_id: agentId, user_id: userId, role: "assistant", content: result.text,
+      input_tokens: result.usage.inputTokens, output_tokens: result.usage.outputTokens,
+      client_message_id: clientAsstMsgId ?? null,
+    },
+    { onConflict: "client_message_id", ignoreDuplicates: true },
+  );
   return json({ reply: result.text });
 }
 
