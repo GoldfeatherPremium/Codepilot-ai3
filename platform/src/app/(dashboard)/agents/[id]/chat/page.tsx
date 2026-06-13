@@ -57,7 +57,23 @@ export default function AgentChatPage() {
       .channel(`agent-${agentId}`)
       .on("postgres_changes",
         { event: "INSERT", schema: "public", table: "agent_messages", filter: `agent_id=eq.${agentId}` },
-        (payload) => setMessages((m) => m.some((x) => x.id === (payload.new as any).id) ? m : [...m, payload.new as AgentMessage]),
+        (payload) => {
+          const incoming = payload.new as AgentMessage;
+          setMessages((m) => {
+            // Already have this exact row (e.g. loaded on mount).
+            if (m.some((x) => x.id === incoming.id)) return m;
+            // Replace a matching optimistic placeholder (same role + content).
+            const localIdx = m.findIndex(
+              (x) => x.id.startsWith("local-") && x.role === incoming.role && x.content === incoming.content,
+            );
+            if (localIdx !== -1) {
+              const next = [...m];
+              next[localIdx] = incoming;
+              return next;
+            }
+            return [...m, incoming];
+          });
+        },
       )
       .on("postgres_changes",
         { event: "*", schema: "public", table: "agent_tasks", filter: `agent_id=eq.${agentId}` },
@@ -85,7 +101,7 @@ export default function AgentChatPage() {
   // ---- actions -------------------------------------------------------------
   const send = useCallback(async (text: string, mode: "chat" | "task") => {
     setError(null);
-    // optimistic user message (server also persists one; dedup by id on insert)
+    // Optimistic user message — replaced in-place by the Realtime INSERT via role+content match.
     const optimistic: AgentMessage = {
       id: `local-${Date.now()}`, role: "user", content: text, parts: [],
       created_at: new Date().toISOString(), task_id: null, run_id: null,
@@ -96,7 +112,9 @@ export default function AgentChatPage() {
         await api.agent.plan(agentId, text);
       } else {
         const { reply } = await api.agent.chat(agentId, text);
-        // realtime insert will deliver the persisted assistant message; this is a fallback
+        // Realtime will deliver the persisted assistant message and replace this
+        // optimistic placeholder via the role+content match in the subscription handler.
+        // This fallback only shows content if Realtime is slow; it gets replaced, not duplicated.
         setMessages((m) => m.some((x) => x.role === "assistant" && x.content === reply)
           ? m
           : [...m, { id: `local-a-${Date.now()}`, role: "assistant", content: reply, parts: [], created_at: new Date().toISOString(), task_id: null, run_id: null }]);
@@ -126,9 +144,9 @@ export default function AgentChatPage() {
   const liveRun = run && ["queued", "running"].includes(run.status);
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-4rem)] max-w-3xl flex-col">
+    <div className="mx-auto flex h-[calc(100dvh-8rem)] max-w-3xl flex-col md:h-[calc(100dvh-4rem)]">
       <div className="mb-4 flex items-center gap-3">
-        <Link href="/agents" className="rounded-md p-1.5 text-faint hover:bg-raised hover:text-ink">
+        <Link href="/agents" className="flex h-9 w-9 items-center justify-center rounded-md text-faint hover:bg-raised hover:text-ink">
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-raised">
