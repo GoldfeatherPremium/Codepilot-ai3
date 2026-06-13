@@ -1,0 +1,14 @@
+# Caddy terminates TLS with automatic Let's Encrypt certificates and proxies
+# to the runner on localhost. Replace the domain with yours.
+sandbox.yourdomain.com {
+	reverse_proxy 127.0.0.1:8080 {
+		# SSE log streams must not be buffered
+		flush_interval -1
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+}

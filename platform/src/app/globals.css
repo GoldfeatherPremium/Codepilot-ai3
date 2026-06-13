@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CodePilot AI design tokens
+   Direction: instrument-panel dark. Near-black graphite surfaces, hairline
+   borders, and a single warm "phosphor" amber reserved for agent activity —
+   a nod to the terminals these agents work in. Blue is informational only.
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  --bg: 240 6% 4%;          /* #09090b  app canvas        */
+  --surface: 240 5% 7%;     /* #101013  cards, sidebar    */
+  --raised: 240 5% 10%;     /* #17171b  hover, inputs     */
+  --line: 240 5% 16%;       /* hairline borders           */
+  --ink: 240 9% 94%;        /* primary text               */
+  --muted: 240 4% 60%;      /* secondary text             */
+  --faint: 240 4% 40%;      /* tertiary text              */
+  --phosphor: 38 96% 56%;   /* #f7a31b agent activity     */
+  --signal: 215 95% 68%;    /* #5e9eff links / info       */
+  --ok: 152 60% 48%;
+  --danger: 0 72% 60%;
+  --warn: 38 96% 56%;
+}
+
+* { border-color: hsl(var(--line)); }
+
+html { color-scheme: dark; }
+
+body {
+  background: hsl(var(--bg));
+  color: hsl(var(--ink));
+  font-feature-settings: "cv11", "ss01";
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: hsl(var(--phosphor) / 0.25); }
+
+/* scrollbars that match the panel */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--line));
+  border-radius: 8px;
+  border: 2px solid hsl(var(--bg));
+}
+::-webkit-scrollbar-track { background: transparent; }
+
+:focus-visible {
+  outline: 2px solid hsl(var(--phosphor));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* markdown inside chat */
+.prose-chat :is(p, ul, ol) { margin: 0.5rem 0; line-height: 1.65; }
+.prose-chat ul { list-style: disc; padding-left: 1.25rem; }
+.prose-chat ol { list-style: decimal; padding-left: 1.25rem; }
+.prose-chat a { color: hsl(var(--signal)); text-decoration: underline; text-underline-offset: 3px; }
+.prose-chat code:not(pre code) {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: hsl(var(--raised));
+  border: 1px solid hsl(var(--line));
+  padding: 0.1em 0.35em;
+  border-radius: 5px;
+}
+.prose-chat pre {
+  background: #0c0c0f;
+  border: 1px solid hsl(var(--line));
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+  font-size: 0.825rem;
+  line-height: 1.6;
+}
+.prose-chat h1, .prose-chat h2, .prose-chat h3 {
+  font-weight: 600; margin: 1rem 0 0.4rem;
+}

@@ -1,0 +1,38 @@
+services:
+  runner:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"   # exposed only locally; Caddy terminates TLS
+    environment:
+      SANDBOX_RUNNER_TOKEN: ${SANDBOX_RUNNER_TOKEN}
+      REDIS_URL: redis://redis:6379
+      SANDBOX_IMAGE: codepilot-sandbox:latest
+      SANDBOX_CPUS: ${SANDBOX_CPUS:-1}
+      SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-1024}
+      SANDBOX_DISK_MB: ${SANDBOX_DISK_MB:-2048}
+      SANDBOX_PIDS_LIMIT: ${SANDBOX_PIDS_LIMIT:-256}
+      SANDBOX_NETWORK: ${SANDBOX_NETWORK:-bridge}
+      MAX_CONCURRENT_JOBS: ${MAX_CONCURRENT_JOBS:-4}
+      MAX_SESSIONS: ${MAX_SESSIONS:-20}
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-900}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      # The runner drives the host Docker daemon to create sibling sandbox
+      # containers. This is the standard pattern for a single-tenant runner
+      # host; do not run untrusted services on the same machine.
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction", "--save", ""]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
