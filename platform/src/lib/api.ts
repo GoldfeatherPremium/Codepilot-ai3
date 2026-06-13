@@ -1,7 +1,7 @@
 // Typed wrappers around edge functions.
 import { createClient } from "@/lib/supabase/client";
 
-async function invoke<T>(fn: string, body: unknown): Promise<T> {
+async function invoke<T>(fn: string, body: Record<string, unknown>): Promise<T> {
   const supabase = createClient();
   const { data, error } = await supabase.functions.invoke(fn, { body });
   if (error) {

@@ -29,7 +29,7 @@ interface MemoryRow {
   repositories?: { full_name: string } | null;
 }
 
-const scopeTone = (s: string) => (s === "user" ? "signal" : s === "repository" ? "phosphor" : "neutral") as const;
+const scopeTone = (s: string): "signal" | "phosphor" | "neutral" => s === "user" ? "signal" : s === "repository" ? "phosphor" : "neutral";
 
 export default function MemoryPage() {
   const [memories, setMemories] = useState<MemoryRow[] | null>(null);
@@ -56,6 +56,7 @@ export default function MemoryPage() {
     setSemantic(false);
   }, [scope, category]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
   async function semanticSearch() {

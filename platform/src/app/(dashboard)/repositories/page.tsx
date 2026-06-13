@@ -27,6 +27,7 @@ export default function RepositoriesPage() {
     setRepos((data as Repository[]) ?? []);
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
   async function sync(id: string) {
